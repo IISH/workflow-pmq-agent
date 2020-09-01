@@ -9,6 +9,7 @@ RUN curl -L "https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64"
     /usr/bin/apt-get update && \
     /usr/bin/apt-get install -y mysql-client rsync p7zip-full tree imagemagick uuid python2-minimal && \
     chown -R jenkins:jenkins /home/jenkins && \
+    ln -s /usr/bin/python2.7 /usr/bin/python && \
     groupadd -g 333 archivematica && useradd -u 333 -g 333 -M archivematica && usermod -a -G archivematica jenkins
 
 COPY target/pmq-agent-3.0.0.jar /home/jenkins/bin/pmq-agent.jar
