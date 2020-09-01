@@ -20,19 +20,20 @@ import java.util.Timer;
 public class MediatorQueue implements Runnable {
 
     final private static Logger log = Logger.getLogger(MediatorQueue.class);
-    private static final int StatusCodeTaskReceipt = 300;
+    private static final int StatusCodeTaskReceipt = 350;
+    private static final int StatusCodeTaskWorking = 360;
     private static final int StatusCodeTaskComplete = 500;
     private static final int StatusCodeTaskCompleteWithError = 450;
     private static final int StatusCodeTaskError = 400;
     private static final int MESSAGE_SIZE = 10000;
 
-    private HttpClientService httpClientService;
-    private ConsumerTemplate consumer;
-    private String messageQueue;
-    private String shellScript;
-    private String bash;
-    private long heartbeatInterval;
-    private ProducerTemplate producer;
+    private final HttpClientService httpClientService;
+    private final ConsumerTemplate consumer;
+    private final String messageQueue;
+    private final String shellScript;
+    private final String bash;
+    private final long heartbeatInterval;
+    private final ProducerTemplate producer;
 
     public MediatorQueue(HttpClientService httpClientService, ConsumerTemplate consumer, ProducerTemplate producer, String messageQueue, String bash, String shellScript, long heartbeatInterval) {
         this.httpClientService = httpClientService;
@@ -57,7 +58,7 @@ public class MediatorQueue implements Runnable {
         final long start = new Date().getTime();
         Timer timer = new Timer();
         long TIMER_DELAY = 10;
-        timer.scheduleAtFixedRate(new HeartBeat(httpClientService, messageQueue, StatusCodeTaskReceipt, identifier, start), TIMER_DELAY, heartbeatInterval);
+        timer.scheduleAtFixedRate(new HeartBeat(httpClientService, messageQueue, StatusCodeTaskWorking, identifier, start), TIMER_DELAY, heartbeatInterval);
 
 
         final DefaultExecutor executor = new DefaultExecutor();
@@ -88,7 +89,7 @@ public class MediatorQueue implements Runnable {
             do {
                 resultHandler.waitFor(heartbeatInterval);
                 final String info = info(stdout.toString());
-                HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskReceipt, info, identifier, 0);
+                HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskWorking, info, identifier, 0);
             } while (!resultHandler.hasResult());
             ok = true;
         } catch (InterruptedException e) {
