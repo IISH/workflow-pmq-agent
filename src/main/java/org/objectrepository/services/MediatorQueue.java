@@ -26,6 +26,7 @@ public class MediatorQueue implements Runnable {
     private static final int StatusCodeTaskCompleteWithError = 450;
     private static final int StatusCodeTaskError = 400;
     private static final int MESSAGE_SIZE = 10000;
+    private static final int PROCESS_HEALTH_INTERVAL = 12;
 
     private final HttpClientService httpClientService;
     private final ConsumerTemplate consumer;
@@ -34,6 +35,7 @@ public class MediatorQueue implements Runnable {
     private final String bash;
     private final long heartbeatInterval;
     private final ProducerTemplate producer;
+
 
     public MediatorQueue(HttpClientService httpClientService, ConsumerTemplate consumer, ProducerTemplate producer, String messageQueue, String bash, String shellScript, long heartbeatInterval) {
         this.httpClientService = httpClientService;
@@ -55,18 +57,13 @@ public class MediatorQueue implements Runnable {
         log.info("Message received: " + identifier);
         HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskReceipt, "Task received", identifier, 0);
 
-        final long start = new Date().getTime();
-        Timer timer = new Timer();
-        long TIMER_DELAY = 10;
-        timer.scheduleAtFixedRate(new HeartBeat(httpClientService, messageQueue, StatusCodeTaskWorking, identifier, start), TIMER_DELAY, heartbeatInterval);
-
-
         final DefaultExecutor executor = new DefaultExecutor();
         //Using Std out for the output/error stream - to do it later...
         //http://stackoverflow.com/questions/621596/how-would-you-read-image-data-in-from-a-program-like-image-magick-in-java
         final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         executor.setStreamHandler(new PumpStreamHandler(stdout));
-        executor.setWatchdog(new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT));
+        final ExecuteWatchdog watchDog = new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT);
+        executor.setWatchdog(watchDog);
         executor.setProcessDestroyer(new ShutdownHookProcessDestroyer());
 
         //Executing the command
@@ -76,32 +73,37 @@ public class MediatorQueue implements Runnable {
         try {
             executor.execute(commandLine, resultHandler);
         } catch (Exception e) {
-            timer.cancel();
             HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskError, e.getMessage(), identifier, -1);
-            //producer.sendBody(identifier);
             log.info(e.getMessage());
             return;
         }
 
-        //Anything after this will be executed only when the task completes
-        boolean ok = false;
+        long health = heartbeatInterval * PROCESS_HEALTH_INTERVAL;
+        int l = 0;
         try {
             do {
                 resultHandler.waitFor(heartbeatInterval);
                 final String info = info(stdout.toString());
                 HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskWorking, info, identifier, 0);
-            } while (!resultHandler.hasResult());
-            ok = true;
+                if (info.length() == l) {
+                    health -= heartbeatInterval;
+                } else {
+                    health = heartbeatInterval * PROCESS_HEALTH_INTERVAL;
+                }
+                l = info.length();
+            } while (!resultHandler.hasResult() && health > -1);
         } catch (InterruptedException e) {
             HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskError, e.getMessage(), identifier, -1);
-            //producer.sendBody(identifier);
             log.error(e.getMessage());
         } finally {
             boolean interrupted = Thread.interrupted();
-            log.info("interrupted " + interrupted);
+            log.debug("interrupted " + interrupted);
         }
-        timer.cancel();
-        if (ok) {
+        if (health < 0) {
+            final String message = "Process no longer giving standard output... is the process killed?";
+            log.info(message);
+            HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskCompleteWithError, message, identifier, 1);
+        } else {
             log.info("resultHandler.exitValue=" + resultHandler.getExitValue());
             final String info = info(stdout.toString());
             int status = (resultHandler.getExitValue() == 0) ? StatusCodeTaskComplete : StatusCodeTaskCompleteWithError;
@@ -109,7 +111,6 @@ public class MediatorQueue implements Runnable {
                 status = -StatusCodeTaskCompleteWithError;
             }
             HeartBeats.message(httpClientService, messageQueue, status, info, identifier, resultHandler.getExitValue());
-            //producer.sendBody(identifier);
         }
     }
 
