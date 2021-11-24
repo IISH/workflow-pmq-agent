@@ -26,7 +26,6 @@ public class MediatorQueue implements Runnable {
     private static final int StatusCodeTaskCompleteWithError = 450;
     private static final int StatusCodeTaskError = 400;
     private static final int MESSAGE_SIZE = 10000;
-    private static final int PROCESS_HEALTH_INTERVAL = 12;
 
     private final HttpClientService httpClientService;
     private final ConsumerTemplate consumer;
@@ -78,32 +77,23 @@ public class MediatorQueue implements Runnable {
             return;
         }
 
-        long health = heartbeatInterval * PROCESS_HEALTH_INTERVAL;
-        int l = 0;
+        boolean ok = false;
         try {
             do {
                 resultHandler.waitFor(heartbeatInterval);
                 final String info = info(stdout.toString());
                 HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskWorking, info, identifier, 0);
-                if (info.length() == l) {
-                    health -= heartbeatInterval;
-                } else {
-                    health = heartbeatInterval * PROCESS_HEALTH_INTERVAL;
-                }
-                l = info.length();
-            } while (!resultHandler.hasResult() && health > -1);
+                ok = true;
+            } while (!resultHandler.hasResult());
         } catch (InterruptedException e) {
+            ok = false;
             HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskError, e.getMessage(), identifier, -1);
             log.error(e.getMessage());
         } finally {
             boolean interrupted = Thread.interrupted();
             log.debug("interrupted " + interrupted);
         }
-        if (health < 0) {
-            final String message = "Process no longer giving standard output... is the process killed?";
-            log.info(message);
-            HeartBeats.message(httpClientService, messageQueue, StatusCodeTaskCompleteWithError, message, identifier, 1);
-        } else {
+        if (ok) {
             log.info("resultHandler.exitValue=" + resultHandler.getExitValue());
             final String info = info(stdout.toString());
             int status = (resultHandler.getExitValue() == 0) ? StatusCodeTaskComplete : StatusCodeTaskCompleteWithError;
