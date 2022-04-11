@@ -40,6 +40,8 @@
     <bean id="httpClientService" class="org.objectrepository.services.HttpClientService">
         <property name="endpoint" value="#{clientProperties['workflow_endpoint']}"/>
         <property name="token" value="#{clientProperties['workflow_endpoint_token']}"/>
+        <property name="hostname" value="#{clientProperties['agent.header.hostname']}"/>
+        <property name="pipeline" value="#{clientProperties['agent.header.pipeline']}"/>
     </bean>
 
 

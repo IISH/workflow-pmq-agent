@@ -85,6 +85,9 @@ public class PropertyPlaceHolder extends Properties {
             log.fatal("Configuration properties incomplete. Check log of this class for warnings.");
             System.exit(1);
         }
+
+        this.setProperty("agent.header.hostname", System.getProperty("agent.header.hostname", "n.a."));
+        this.setProperty("agent.header.pipeline", System.getProperty("agent.header.pipeline", "n.a."));
     }
 
     public static InputStream getInputFromFile(String filePath) {

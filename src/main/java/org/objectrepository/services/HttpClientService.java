@@ -23,6 +23,8 @@ public class HttpClientService {
     private final RequestConfig.Builder requestConfig;
     private String endpoint;
     private String token;
+    private String hostname;
+    private String pipeline;
 
     public HttpClientService() {
         this.httpclient = HttpClients.createDefault();
@@ -39,6 +41,8 @@ public class HttpClientService {
         final HttpPost httpPost = new HttpPost(endpoint + "/queue/" + identifier);
         httpPost.setConfig(requestConfig.build());
         httpPost.setHeader("User-Agent", "PMQ Agent");
+        httpPost.setHeader("Agent-Hostname", this.hostname);
+        httpPost.setHeader("Agent-Pipeline", this.pipeline);
         httpPost.setHeader("Authorization", "Bearer " + this.token);
         httpPost.setHeader("Content-Type", "application/json");
         final String[] split = messageQueue.split(":", 3);
@@ -125,5 +129,17 @@ public class HttpClientService {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
+
+    public void setPipeline(String pipeline) {
+        this.pipeline = pipeline;
     }
 }

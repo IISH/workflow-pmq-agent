@@ -9,7 +9,7 @@ then
 	echo "No tag. Set to ${tag}"
 fi
 
-export JAVA_HOME=/usr/lib/jvm/jdk-9.0.1
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 mvn clean package
 docker build --tag="registry.diginfra.net/lwo/pmq-agent:${tag}" .

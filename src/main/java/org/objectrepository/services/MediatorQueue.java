@@ -1,4 +1,4 @@
-package org.objectrepository.services;
+    package org.objectrepository.services;
 
 import org.apache.camel.ConsumerTemplate;
 import org.apache.camel.ProducerTemplate;
@@ -26,6 +26,7 @@ public class MediatorQueue implements Runnable {
     private static final int StatusCodeTaskCompleteWithError = 450;
     private static final int StatusCodeTaskError = 400;
     private static final int MESSAGE_SIZE = 10000;
+    private static final int INTENDED_FAIL = 254;
 
     private final HttpClientService httpClientService;
     private final ConsumerTemplate consumer;
@@ -97,7 +98,7 @@ public class MediatorQueue implements Runnable {
             log.info("resultHandler.exitValue=" + resultHandler.getExitValue());
             final String info = info(stdout.toString());
             int status = (resultHandler.getExitValue() == 0) ? StatusCodeTaskComplete : StatusCodeTaskCompleteWithError;
-            if (resultHandler.getExitValue() == 255) {
+            if (resultHandler.getExitValue() == INTENDED_FAIL) {
                 status = -StatusCodeTaskCompleteWithError;
             }
             HeartBeats.message(httpClientService, messageQueue, status, info, identifier, resultHandler.getExitValue());
