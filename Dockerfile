@@ -1,5 +1,5 @@
 FROM openjdk:11
-LABEL Description="PMQ agent" Version="3.0.14"
+LABEL Description="PMQ agent" Version="3.0.15"
 
 USER root
 

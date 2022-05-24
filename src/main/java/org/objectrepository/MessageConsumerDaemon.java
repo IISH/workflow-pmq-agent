@@ -242,6 +242,7 @@ public class MessageConsumerDaemon extends Thread implements Runnable {
     private static List<Queue> registerQueues(String bash, File message_queues, String type, List<Queue> queues) throws FileNotFoundException {
 
         final String CYGWIN_HOME = System.getenv("CYGWIN_HOME");
+        final String namespace = System.getenv("NAMESPACE");
         final String[] scriptNames = {"/startup.sh", "\\startup.bat"};
 
         final boolean isTopic = type.equalsIgnoreCase("topic");
@@ -253,10 +254,12 @@ public class MessageConsumerDaemon extends Thread implements Runnable {
             for (File file : files) {
                 if (file.isDirectory()) {
                     final String name = file.getName();
-                    final String[] split = name.split("\\.", 2);
-                    final String queueName = split[0];
-                    if (queueName.equalsIgnoreCase(".")) // hidden folder
+                    final String[] split = name.split("\\.", 2); // myqueuename.1
+                    final String _queueName = split[0];
+                    if (_queueName.equalsIgnoreCase(".")) // hidden folder
                         continue;
+
+                    final String queueName = (namespace == null) ? _queueName : namespace + "_" + _queueName;
 
                     for (String scriptName : scriptNames) {
                         final String _shellScript = file.getAbsolutePath() + scriptName;
