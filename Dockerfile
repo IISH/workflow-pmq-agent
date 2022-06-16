@@ -1,10 +1,11 @@
 FROM openjdk:11
-LABEL Description="PMQ agent" Version="3.0.22"
+LABEL Description="PMQ agent" Version="3.0.23"
 
 USER root
 
-RUN groupadd -g 1000 linuxadmin && useradd -u 1000 -g 1000 -M linuxadmin && usermod -a -G linuxadmin linuxadmin && \
-    groupadd -g 333 archivematica && useradd -u 333 -g 333 -M archivematica && usermod -a -G archivematica archivematica && \
+RUN groupadd -g 1000 linuxadmin && useradd -u 1000 -g 1000 -M linuxadmin && usermod -aG linuxadmin linuxadmin && \
+    groupadd -g 333 archivematica && useradd -u 333 -g 333 -M archivematica && usermod -aG archivematica archivematica && \
+    usermod -aG linuxadmin archivematica && usermod -aG archivematica linuxadmin && \
     mkdir -p /home/linuxadmin/.mc && chown -R linuxadmin:linuxadmin /home/linuxadmin && \
     curl -L 'https://dl.min.io/client/mc/release/linux-amd64/mc' -o '/usr/bin/mc' && \
     curl -L 'https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64' -o '/usr/bin/jq' && \
